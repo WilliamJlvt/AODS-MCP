@@ -160,3 +160,21 @@ Le système inclut plusieurs garde-fous :
 Ce projet est un prototype de "Mainframe Agentique" - un système capable d'auto-organisation via la délégation intelligente. Il suit les standards OpenAI et MCP pour assurer la compatibilité avec les futurs modèles de langage.
 
 Pour plus de détails sur la conception, consultez `doc.md`.
+
+## 🎯 Exemples d'utilisation
+
+Le dossier `examples/` contient 6 cas d'usage concrets démontrant les capacités du système :
+
+1. **Analyse de logs système** - Délégation pour analyser des logs et générer des rapports
+2. **Génération de documentation** - Création automatique de documentation technique
+3. **Audit de sécurité** - Détection de vulnérabilités dans le code
+4. **Analyse de performance** - Identification de goulots d'étranglement
+5. **Migration de code** - Assistance à la migration entre versions
+6. **Revue de code automatisée** - Analyse multi-facettes du code
+
+Consultez `examples/README.md` pour plus de détails sur chaque exemple.
+
+**Exécuter un exemple :**
+```bash
+python examples/example_1_log_analysis.py
+```

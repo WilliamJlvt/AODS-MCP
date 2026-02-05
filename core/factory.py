@@ -1,15 +1,18 @@
 """Factory pour la création dynamique d'agents."""
-from typing import Optional, Dict, Any
-from agents.worker import WorkerAgent
-from agents.manager import ManagerAgent
+from typing import Optional, Dict, Any, TYPE_CHECKING
 from core.base import GraphManager
+
+if TYPE_CHECKING:
+    from agents.worker import WorkerAgent
+    from agents.manager import ManagerAgent
 
 
 class AgentFactory:
     """Factory pour créer des agents à la volée."""
     
-    def __init__(self, graph_manager: Optional[GraphManager] = None):
+    def __init__(self, graph_manager: Optional[GraphManager] = None, workspace_dir: Optional[str] = None):
         self.graph_manager = graph_manager
+        self.workspace_dir = workspace_dir
         self.agent_registry: Dict[str, Any] = {}
         self.agent_counter = 0
     
@@ -20,8 +23,11 @@ class AgentFactory:
         system_prompt: Optional[str] = None,
         parent_agent: Optional[str] = None,
         depth: int = 0
-    ) -> WorkerAgent:
+    ):
         """Crée un agent Worker avec un contexte spécifique."""
+        # Import différé pour éviter les dépendances circulaires
+        from agents.worker import WorkerAgent
+        
         if not agent_name:
             self.agent_counter += 1
             agent_name = f"Worker_{self.agent_counter}"
@@ -34,7 +40,8 @@ class AgentFactory:
             name=agent_name,
             role=role,
             graph_manager=self.graph_manager,
-            system_prompt=system_prompt
+            system_prompt=system_prompt,
+            workspace_dir=self.workspace_dir
         )
         worker.set_depth(depth)
         
@@ -57,8 +64,11 @@ class AgentFactory:
         name: str,
         client,
         graph_manager: Optional[GraphManager] = None
-    ) -> ManagerAgent:
+    ):
         """Crée un agent Manager."""
+        # Import différé pour éviter les dépendances circulaires
+        from agents.manager import ManagerAgent
+        
         manager = ManagerAgent(
             name=name,
             client=client,

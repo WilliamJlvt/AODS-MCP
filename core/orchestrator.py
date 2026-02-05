@@ -13,7 +13,7 @@ class Orchestrator:
         self.client = client
         self.workspace_dir = workspace_dir
         self.graph_manager = GraphManager()
-        self.factory = AgentFactory(graph_manager=self.graph_manager)
+        self.factory = AgentFactory(graph_manager=self.graph_manager, workspace_dir=workspace_dir)
         self.filesystem = MCPFilesystem(base_path=workspace_dir)
         self.token_budget = 100000  # Budget par défaut
         self.tokens_used = 0
@@ -204,20 +204,45 @@ class Orchestrator:
             
             message = response.choices[0].message
             
+            # Debug: vérifier les tool_calls
+            if hasattr(message, 'tool_calls') and message.tool_calls:
+                print(f"[DEBUG] Tool calls détectés: {len(message.tool_calls)}")
+                for tc in message.tool_calls:
+                    print(f"[DEBUG] Tool call: {tc.function.name if hasattr(tc, 'function') else 'N/A'}")
+            
             # Traiter les tool calls
-            if message.tool_calls:
+            # Vérifier si tool_calls existe et n'est pas None/empty
+            tool_calls = getattr(message, 'tool_calls', None)
+            if tool_calls:
                 results = []
-                for tool_call in message.tool_calls:
-                    tool_name = tool_call.function.name
-                    arguments = json.loads(tool_call.function.arguments)
+                for tool_call in tool_calls:
+                    # Gérer différents formats de tool_call
+                    if hasattr(tool_call, 'function'):
+                        tool_name = tool_call.function.name
+                        arguments_str = tool_call.function.arguments
+                    elif isinstance(tool_call, dict):
+                        tool_name = tool_call.get('function', {}).get('name', '')
+                        arguments_str = tool_call.get('function', {}).get('arguments', '{}')
+                    else:
+                        print(f"[DEBUG] Format de tool_call inattendu: {type(tool_call)}")
+                        continue
                     
-                    result = await self.process_tool_call(
-                        tool_name,
-                        arguments,
-                        manager_agent,
-                        depth
-                    )
-                    results.append(result)
+                    try:
+                        arguments = json.loads(arguments_str) if isinstance(arguments_str, str) else arguments_str
+                        print(f"[DEBUG] Exécution de l'outil: {tool_name} avec args: {arguments}")
+                        
+                        result = await self.process_tool_call(
+                            tool_name,
+                            arguments,
+                            manager_agent,
+                            depth
+                        )
+                        results.append(result)
+                    except Exception as e:
+                        print(f"[DEBUG] Erreur lors du traitement du tool_call: {str(e)}")
+                        import traceback
+                        traceback.print_exc()
+                        results.append(f"Erreur lors de l'exécution de {tool_name}: {str(e)}")
                 
                 # Si plusieurs tool calls, combiner les résultats
                 combined_result = "\n".join(str(r) for r in results)
@@ -226,7 +251,11 @@ class Orchestrator:
                 return combined_result
             else:
                 # Réponse directe du LLM
-                return message.content
+                content = getattr(message, 'content', None)
+                if content:
+                    return content
+                else:
+                    return "Aucune réponse générée par le LLM"
             
         except Exception as e:
             return f"Erreur lors de l'appel LLM: {str(e)}"
